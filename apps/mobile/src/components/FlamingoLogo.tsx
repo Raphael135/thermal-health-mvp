@@ -21,45 +21,42 @@ export function FlamingoLogo({ size = 96, bare = false }: FlamingoLogoProps) {
 
       {/* estrela */}
       <Path
-        d="M156 66 L160.5 79.5 L174 84 L160.5 88.5 L156 102 L151.5 88.5 L138 84 L151.5 79.5 Z"
+        d="M150 30 Q152.5 40.5 163 43 Q152.5 45.5 150 56 Q147.5 45.5 137 43 Q147.5 40.5 150 30 Z"
         fill={colors.cream}
       />
 
-      {/* cabeça + bico */}
-      <Circle cx={96} cy={52} r={9} stroke={colors.cream} strokeWidth={4} />
-      <Path
-        d="M104 50 C 114 48, 122 52, 126 58"
-        stroke={colors.cream}
-        strokeWidth={4}
-        strokeLinecap="round"
-      />
-      <Circle cx={99} cy={49} r={1.6} fill={colors.cream} />
+      {/* cabeça + olho */}
+      <Circle cx={90} cy={44} r={9} stroke={colors.cream} strokeWidth={4.5} />
+      <Circle cx={87} cy={41} r={1.8} fill={colors.cream} />
 
-      {/* pescoço em S até o corpo */}
+      {/* bico (cunha sólida) */}
+      <Path d="M98 41 L 120 45 L 101 51 Z" fill={colors.cream} />
+
+      {/* pescoço: uma única curva em S */}
       <Path
-        d="M89 58 C 78 70, 100 82, 92 98 C 86 110, 66 112, 66 128"
+        d="M92 53 C 58 66, 108 92, 72 130"
         stroke={colors.cream}
-        strokeWidth={4}
+        strokeWidth={4.5}
         strokeLinecap="round"
         fill="none"
       />
 
       {/* corpo */}
       <Path
-        d="M66 128 C 40 122, 34 150, 52 162 C 68 172, 96 168, 100 150 C 103 138, 92 130, 78 128 Z"
+        d="M72 130
+           C 46 126, 38 158, 54 178
+           C 66 192, 102 192, 112 176
+           C 120 163, 112 138, 90 130
+           C 84 128, 76 128, 72 130 Z"
         stroke={colors.cream}
-        strokeWidth={4}
+        strokeWidth={4.5}
         strokeLinejoin="round"
         fill="none"
       />
 
-      {/* perna e pé */}
-      <Path
-        d="M84 160 L84 200"
-        stroke={colors.cream}
-        strokeWidth={4}
-        strokeLinecap="round"
-      />
+      {/* perna + pé */}
+      <Path d="M84 186 L 82 198" stroke={colors.cream} strokeWidth={4.5} strokeLinecap="round" />
+      <Path d="M76 198 L 89 198" stroke={colors.cream} strokeWidth={4.5} strokeLinecap="round" />
     </Svg>
   );
 }
