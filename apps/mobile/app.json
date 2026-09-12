@@ -5,9 +5,26 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true },
-    "android": { "package": "com.thermalhealth.mobile" },
-    "plugins": []
+    "backgroundColor": "#FBF1EC",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "backgroundColor": "#C77D89",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "backgroundColor": "#FBF1EC"
+    },
+    "android": {
+      "package": "com.thermalhealth.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#C77D89"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

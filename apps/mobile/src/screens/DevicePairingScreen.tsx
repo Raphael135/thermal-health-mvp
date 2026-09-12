@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DeviceService } from '../services/DeviceService';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { AppButton, AppTextInput, Heading, Label } from '../components/ui';
+import { colors } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DevicePairing'>;
 
@@ -33,49 +35,26 @@ export function DevicePairingScreen({ route, navigation }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, padding: 24, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700' }}>{deviceName}</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 24, gap: 12 }}>
+      <Heading style={{ fontSize: 18 }}>{deviceName}</Heading>
 
       {!connected ? (
-        <TouchableOpacity
-          onPress={handleConnect}
-          disabled={connecting}
-          style={{ backgroundColor: '#0f172a', borderRadius: 8, padding: 14, alignItems: 'center' }}
-        >
-          {connecting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Conectar via BLE</Text>}
-        </TouchableOpacity>
+        <AppButton label="Conectar via BLE" onPress={handleConnect} loading={connecting} />
       ) : (
         <>
-          <Text style={{ color: '#16a34a', fontWeight: '600' }}>Conectado</Text>
+          <Label style={{ color: colors.success }}>Conectado</Label>
 
-          <Text style={{ fontWeight: '600', marginTop: 8 }}>Configurar Wi-Fi do dispositivo</Text>
-          <TextInput
-            placeholder="Nome da rede (SSID)"
-            value={ssid}
-            onChangeText={setSsid}
-            style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12 }}
-          />
-          <TextInput
-            placeholder="Senha da rede"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12 }}
-          />
-          <TouchableOpacity
+          <Label style={{ marginTop: 8 }}>Configurar Wi-Fi do dispositivo</Label>
+          <AppTextInput placeholder="Nome da rede (SSID)" value={ssid} onChangeText={setSsid} />
+          <AppTextInput placeholder="Senha da rede" secureTextEntry value={password} onChangeText={setPassword} />
+          <AppButton
+            label="Enviar configuração"
+            variant="secondary"
             onPress={handleSendWifi}
-            disabled={sendingWifi}
-            style={{ backgroundColor: '#334155', borderRadius: 8, padding: 12, alignItems: 'center' }}
-          >
-            {sendingWifi ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Enviar configuração</Text>}
-          </TouchableOpacity>
+            loading={sendingWifi}
+          />
 
-          <TouchableOpacity
-            onPress={handleStartCapture}
-            style={{ backgroundColor: '#0f172a', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '600' }}>Iniciar captura</Text>
-          </TouchableOpacity>
+          <AppButton label="Iniciar captura" onPress={handleStartCapture} style={{ marginTop: 12 }} />
         </>
       )}
     </View>

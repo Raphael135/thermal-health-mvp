@@ -1,6 +1,9 @@
-import { FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../api/client';
+import { AppButton, BodyText, Card, Heading, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 
 interface Doctor {
   id: string;
@@ -29,37 +32,37 @@ export function LinkDoctorScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['doctor-links', 'me'] }),
   });
 
-  const linkedIds = new Set(links?.map((l) => l.doctor.id));
-
   return (
-    <View style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 12 }}>Vincular médico</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 24 }}>
+      <Heading style={{ fontSize: 18, marginBottom: 12 }}>Vincular médico</Heading>
       <FlatList
         data={doctors}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ gap: 10 }}
         renderItem={({ item }) => {
           const existingLink = links?.find((l) => l.doctor.id === item.id);
           return (
-            <View style={{ borderBottomWidth: 1, borderColor: '#e2e8f0', paddingVertical: 12 }}>
-              <Text style={{ fontWeight: '600' }}>Dr(a). {item.fullName}</Text>
-              <Text style={{ color: '#64748b' }}>
+            <Card>
+              <BodyText style={{ fontFamily: fonts.semiBold }}>Dr(a). {item.fullName}</BodyText>
+              <Subtitle>
                 CRM {item.crm} {item.specialty ? `· ${item.specialty}` : ''}
-              </Text>
+              </Subtitle>
               {existingLink ? (
-                <Text style={{ color: '#0f172a', marginTop: 4 }}>Status: {existingLink.status}</Text>
+                <Subtitle style={{ marginTop: 6, color: colors.primaryDark, fontFamily: fonts.medium }}>
+                  Status: {existingLink.status}
+                </Subtitle>
               ) : (
-                <TouchableOpacity
+                <AppButton
+                  label="Solicitar vínculo"
                   onPress={() => requestLink.mutate(item.id)}
-                  style={{ marginTop: 8, backgroundColor: '#0f172a', borderRadius: 8, padding: 10, alignItems: 'center' }}
-                >
-                  <Text style={{ color: '#fff' }}>Solicitar vínculo</Text>
-                </TouchableOpacity>
+                  style={{ marginTop: 10, paddingVertical: 10 }}
+                />
               )}
-            </View>
+            </Card>
           );
         }}
+        ListEmptyComponent={<Subtitle>Nenhum médico disponível ainda.</Subtitle>}
       />
-      {!linkedIds && null}
     </View>
   );
 }

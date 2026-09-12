@@ -1,8 +1,10 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiFetch } from '../api/client';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { BodyText, Heading, Label, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExamDetail'>;
 
@@ -23,33 +25,33 @@ export function ExamDetailScreen({ route }: Props) {
   });
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700' }}>Detalhes do exame</Text>
-      <Text style={{ color: '#64748b' }}>
+    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={{ padding: 24, gap: 14 }}>
+      <Heading style={{ fontSize: 18 }}>Detalhes do exame</Heading>
+      <Subtitle>
         Este app não exibe a imagem térmica nem os dados brutos — apenas o médico responsável tem acesso a eles.
-      </Text>
+      </Subtitle>
 
       {data && (
         <>
           <View>
-            <Text style={{ fontWeight: '600' }}>Data</Text>
-            <Text>{new Date(data.createdAt).toLocaleString('pt-BR')}</Text>
+            <Label>Data</Label>
+            <BodyText>{new Date(data.createdAt).toLocaleString('pt-BR')}</BodyText>
           </View>
           <View>
-            <Text style={{ fontWeight: '600' }}>Status</Text>
-            <Text>{data.status}</Text>
+            <Label>Status</Label>
+            <BodyText>{data.status}</BodyText>
           </View>
 
-          <Text style={{ fontWeight: '600', marginTop: 12 }}>Observações do médico</Text>
+          <Label style={{ marginTop: 8 }}>Observações do médico</Label>
           {data.medicalObservations.length === 0 && (
-            <Text style={{ color: '#64748b' }}>Nenhuma observação liberada até o momento.</Text>
+            <Subtitle>Nenhuma observação liberada até o momento.</Subtitle>
           )}
           {data.medicalObservations.map((obs) => (
-            <View key={obs.id} style={{ borderTopWidth: 1, borderColor: '#e2e8f0', paddingTop: 8 }}>
-              <Text>{obs.note}</Text>
-              <Text style={{ color: '#64748b', fontSize: 12 }}>
+            <View key={obs.id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 8 }}>
+              <BodyText>{obs.note}</BodyText>
+              <Subtitle style={{ marginTop: 2 }}>
                 Dr(a). {obs.doctor.fullName} · {new Date(obs.createdAt).toLocaleDateString('pt-BR')}
-              </Text>
+              </Subtitle>
             </View>
           ))}
         </>

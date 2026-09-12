@@ -3,6 +3,9 @@ import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DeviceService, ScannedDevice } from '../services/DeviceService';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { Heading, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Devices'>;
 
@@ -22,32 +25,44 @@ export function DevicesScreen({ navigation }: Props) {
   }, []);
 
   return (
-    <View style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 4 }}>Dispositivos próximos</Text>
-      <Text style={{ color: '#64748b', marginBottom: 12 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 24 }}>
+      <Heading style={{ fontSize: 18, marginBottom: 4 }}>Dispositivos próximos</Heading>
+      <Subtitle style={{ marginBottom: 12 }}>
         Modo simulado (sem BLE real) — útil para testar o app sem o hardware físico.
-      </Text>
+      </Subtitle>
 
-      {scanning && <ActivityIndicator style={{ marginBottom: 12 }} />}
+      {scanning && <ActivityIndicator color={colors.primary} style={{ marginBottom: 12 }} />}
 
       <FlatList
         data={devices}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ gap: 8 }}
         renderItem={({ item }) => (
           <TouchableOpacity
+            activeOpacity={0.85}
             onPress={() => navigation.navigate('DevicePairing', { deviceId: item.id, deviceName: item.name })}
-            style={{ borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, marginBottom: 8 }}
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 14,
+              padding: 14,
+            }}
           >
-            <Text style={{ fontWeight: '600' }}>{item.name}</Text>
-            <Text style={{ color: '#64748b' }}>
+            <Text style={{ fontFamily: fonts.semiBold, color: colors.textPrimary }}>{item.name}</Text>
+            <Subtitle style={{ marginTop: 2 }}>
               {item.id} · sinal {item.rssi} dBm
-            </Text>
+            </Subtitle>
           </TouchableOpacity>
         )}
       />
 
       <TouchableOpacity onPress={startScan} disabled={scanning}>
-        <Text style={{ textAlign: 'center', color: '#0f172a', marginTop: 8 }}>Procurar novamente</Text>
+        <Text
+          style={{ textAlign: 'center', color: colors.primaryDark, fontFamily: fonts.medium, marginTop: 12 }}
+        >
+          Procurar novamente
+        </Text>
       </TouchableOpacity>
     </View>
   );

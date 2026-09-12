@@ -13,6 +13,8 @@ import { LinkDoctorScreen } from '../screens/LinkDoctorScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
 import { DevicePairingScreen } from '../screens/DevicePairingScreen';
 import { CaptureStatusScreen } from '../screens/CaptureStatusScreen';
+import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -38,15 +40,23 @@ export function RootNavigator() {
 
   if (!hydrated) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerTitleAlign: 'center' }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerTitleAlign: 'center',
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.primaryDark,
+          headerTitleStyle: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.textPrimary },
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
         {!tokens ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import { apiFetch } from '../api/client';
 import { useAuthStore } from '../store/auth-store';
 import { registerSchema, RegisterFormValues } from '../lib/schemas';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { AppButton, AppTextInput, ErrorText, Heading, Label, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -17,7 +19,10 @@ export function RegisterScreen(_props: Props) {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({ resolver: zodResolver(registerSchema) });
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { fullName: '', email: '', password: '', phone: '' },
+  });
 
   async function onSubmit(values: RegisterFormValues) {
     setError(null);
@@ -33,61 +38,69 @@ export function RegisterScreen(_props: Props) {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>Criar conta</Text>
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 }}
+    >
+      <Heading style={{ marginBottom: 4 }}>Criar conta</Heading>
+      <Subtitle style={{ marginBottom: 12 }}>Leva menos de um minuto</Subtitle>
 
-      <Controller
-        control={control}
-        name="fullName"
-        render={({ field }) => (
-          <TextInput placeholder="Nome completo" value={field.value} onChangeText={field.onChange} style={inputStyle} />
-        )}
-      />
-      {errors.fullName && <Text style={errorStyle}>{errors.fullName.message}</Text>}
+      <View style={{ gap: 4 }}>
+        <Label>Nome completo</Label>
+        <Controller
+          control={control}
+          name="fullName"
+          render={({ field }) => (
+            <AppTextInput placeholder="Seu nome" value={field.value} onChangeText={field.onChange} />
+          )}
+        />
+        {errors.fullName && <ErrorText>{errors.fullName.message}</ErrorText>}
+      </View>
 
-      <Controller
-        control={control}
-        name="email"
-        render={({ field }) => (
-          <TextInput
-            placeholder="E-mail"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={field.value}
-            onChangeText={field.onChange}
-            style={inputStyle}
-          />
-        )}
-      />
-      {errors.email && <Text style={errorStyle}>{errors.email.message}</Text>}
+      <View style={{ gap: 4 }}>
+        <Label>E-mail</Label>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field }) => (
+            <AppTextInput
+              placeholder="voce@exemplo.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={field.value}
+              onChangeText={field.onChange}
+            />
+          )}
+        />
+        {errors.email && <ErrorText>{errors.email.message}</ErrorText>}
+      </View>
 
-      <Controller
-        control={control}
-        name="password"
-        render={({ field }) => (
-          <TextInput placeholder="Senha" secureTextEntry value={field.value} onChangeText={field.onChange} style={inputStyle} />
-        )}
-      />
-      {errors.password && <Text style={errorStyle}>{errors.password.message}</Text>}
+      <View style={{ gap: 4 }}>
+        <Label>Senha</Label>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field }) => (
+            <AppTextInput placeholder="••••••••" secureTextEntry value={field.value} onChangeText={field.onChange} />
+          )}
+        />
+        {errors.password && <ErrorText>{errors.password.message}</ErrorText>}
+      </View>
 
-      <Controller
-        control={control}
-        name="phone"
-        render={({ field }) => (
-          <TextInput placeholder="Telefone (opcional)" value={field.value} onChangeText={field.onChange} style={inputStyle} />
-        )}
-      />
+      <View style={{ gap: 4 }}>
+        <Label>Telefone (opcional)</Label>
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field }) => (
+            <AppTextInput placeholder="(11) 90000-0000" value={field.value} onChangeText={field.onChange} />
+          )}
+        />
+      </View>
 
-      {error && <Text style={errorStyle}>{error}</Text>}
+      {error && <ErrorText>{error}</ErrorText>}
 
-      <TouchableOpacity onPress={handleSubmit(onSubmit)} disabled={isSubmitting} style={buttonStyle}>
-        {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={buttonTextStyle}>Cadastrar</Text>}
-      </TouchableOpacity>
+      <AppButton label="Cadastrar" onPress={handleSubmit(onSubmit)} loading={isSubmitting} style={{ marginTop: 8 }} />
     </ScrollView>
   );
 }
-
-const inputStyle = { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12 };
-const errorStyle = { color: '#dc2626', fontSize: 12 };
-const buttonStyle = { backgroundColor: '#0f172a', borderRadius: 8, padding: 14, alignItems: 'center' as const };
-const buttonTextStyle = { color: '#fff', fontWeight: '600' as const };

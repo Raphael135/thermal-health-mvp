@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiFetch } from '../api/client';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { Heading, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExamHistory'>;
 
@@ -33,21 +36,31 @@ export function ExamHistoryScreen({ navigation }: Props) {
   });
 
   return (
-    <View style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 12 }}>Histórico de exames</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 24 }}>
+      <Heading style={{ fontSize: 18, marginBottom: 12 }}>Histórico de exames</Heading>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ gap: 8 }}
         renderItem={({ item }) => (
           <TouchableOpacity
+            activeOpacity={0.85}
             onPress={() => navigation.navigate('ExamDetail', { examinationId: item.id })}
-            style={{ borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, marginBottom: 8 }}
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 14,
+              padding: 14,
+            }}
           >
-            <Text style={{ fontWeight: '600' }}>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</Text>
-            <Text style={{ color: '#64748b' }}>{statusLabel[item.status]}</Text>
+            <Text style={{ fontFamily: fonts.semiBold, color: colors.textPrimary }}>
+              {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+            </Text>
+            <Subtitle style={{ marginTop: 2 }}>{statusLabel[item.status]}</Subtitle>
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={{ color: '#64748b' }}>Nenhum exame registrado ainda.</Text>}
+        ListEmptyComponent={<Subtitle>Nenhum exame registrado ainda.</Subtitle>}
       />
     </View>
   );

@@ -1,9 +1,11 @@
-import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../api/client';
 import { symptomSchema, SymptomFormValues } from '../lib/schemas';
+import { AppButton, AppTextInput, BodyText, Card, ErrorText, Heading, Label, Subtitle } from '../components/ui';
+import { colors } from '../theme/colors';
 
 interface SymptomReport {
   id: string;
@@ -21,7 +23,10 @@ export function SymptomsScreen() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<SymptomFormValues>({ resolver: zodResolver(symptomSchema), defaultValues: { severity: 1 } });
+  } = useForm<SymptomFormValues>({
+    resolver: zodResolver(symptomSchema),
+    defaultValues: { description: '', severity: 1 },
+  });
 
   const createSymptom = useMutation({
     mutationFn: (values: SymptomFormValues) =>
@@ -33,58 +38,58 @@ export function SymptomsScreen() {
   });
 
   return (
-    <View style={{ flex: 1, padding: 24, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700' }}>Registrar sintoma</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: 24, gap: 10 }}>
+      <Heading style={{ fontSize: 18 }}>Registrar sintoma</Heading>
 
-      <Controller
-        control={control}
-        name="description"
-        render={({ field }) => (
-          <TextInput
-            placeholder="Descreva o que está sentindo"
-            value={field.value}
-            onChangeText={field.onChange}
-            style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12 }}
-            multiline
-          />
-        )}
-      />
-      {errors.description && <Text style={{ color: '#dc2626', fontSize: 12 }}>{errors.description.message}</Text>}
+      <View style={{ gap: 4 }}>
+        <Label>Descrição</Label>
+        <Controller
+          control={control}
+          name="description"
+          render={({ field }) => (
+            <AppTextInput
+              placeholder="Descreva o que está sentindo"
+              value={field.value}
+              onChangeText={field.onChange}
+              multiline
+            />
+          )}
+        />
+        {errors.description && <ErrorText>{errors.description.message}</ErrorText>}
+      </View>
 
-      <Controller
-        control={control}
-        name="severity"
-        render={({ field }) => (
-          <TextInput
-            placeholder="Severidade (1 a 5)"
-            keyboardType="numeric"
-            value={String(field.value)}
-            onChangeText={(v) => field.onChange(Number(v))}
-            style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12 }}
-          />
-        )}
-      />
+      <View style={{ gap: 4 }}>
+        <Label>Severidade (1 a 5)</Label>
+        <Controller
+          control={control}
+          name="severity"
+          render={({ field }) => (
+            <AppTextInput
+              placeholder="1"
+              keyboardType="numeric"
+              value={String(field.value)}
+              onChangeText={(v) => field.onChange(Number(v))}
+            />
+          )}
+        />
+      </View>
 
-      <TouchableOpacity
-        onPress={handleSubmit((v) => createSymptom.mutate(v))}
-        disabled={isSubmitting}
-        style={{ backgroundColor: '#0f172a', borderRadius: 8, padding: 14, alignItems: 'center' }}
-      >
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Salvar</Text>
-      </TouchableOpacity>
+      <AppButton label="Salvar" onPress={handleSubmit((v) => createSymptom.mutate(v))} loading={isSubmitting} />
 
-      <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 16 }}>Histórico</Text>
+      <Heading style={{ fontSize: 16, marginTop: 16 }}>Histórico</Heading>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ gap: 8 }}
         renderItem={({ item }) => (
-          <View style={{ borderBottomWidth: 1, borderColor: '#e2e8f0', paddingVertical: 8 }}>
-            <Text>{item.description}</Text>
-            <Text style={{ color: '#64748b', fontSize: 12 }}>
+          <Card>
+            <BodyText>{item.description}</BodyText>
+            <Subtitle style={{ marginTop: 4 }}>
               Severidade {item.severity} · {new Date(item.reportedAt).toLocaleDateString('pt-BR')}
-            </Text>
-          </View>
+            </Subtitle>
+          </Card>
         )}
+        ListEmptyComponent={<Subtitle>Nenhum sintoma registrado ainda.</Subtitle>}
       />
     </View>
   );

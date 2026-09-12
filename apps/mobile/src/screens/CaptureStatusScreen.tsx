@@ -3,6 +3,9 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DeviceService, CaptureStatus } from '../services/DeviceService';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { FlamingoLogo } from '../components/FlamingoLogo';
+import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CaptureStatus'>;
 
@@ -28,13 +31,34 @@ export function CaptureStatusScreen({ route, navigation }: Props) {
   }, [deviceId]);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16 }}>
-      {status !== 'done' && status !== 'error' && <ActivityIndicator size="large" />}
-      <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center' }}>{labels[status]}</Text>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+        gap: 16,
+      }}
+    >
+      {status === 'done' ? (
+        <FlamingoLogo size={72} />
+      ) : status !== 'error' ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : null}
+      <Text
+        style={{ fontFamily: fonts.semiBold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' }}
+      >
+        {labels[status]}
+      </Text>
 
       {status === 'done' && (
         <Text
-          style={{ color: '#0f172a', textDecorationLine: 'underline' }}
+          style={{
+            color: colors.primaryDark,
+            fontFamily: fonts.medium,
+            textDecorationLine: 'underline',
+          }}
           onPress={() => navigation.navigate('ExamHistory')}
         >
           Ver no histórico de exames
