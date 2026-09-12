@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build
+dist/
+build/
+.expo/
+.next/
+out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+services/api/prisma/*.db
+
+# Docker volumes (local data)
+infra/docker/volumes/
+
+# ESP-IDF build
+firmware/esp32/build/
+firmware/esp32/managed_components/
+firmware/esp32/sdkconfig
+firmware/esp32/sdkconfig.old

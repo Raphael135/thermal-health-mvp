@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+  TECHNICIAN
+}
+
+enum LinkStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ExaminationStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  REVIEWED
+}
+
+enum ConsentType {
+  TERMS_OF_USE
+  PRIVACY_POLICY
+  THERMAL_DATA_PROCESSING
+  DATA_SHARING_WITH_DOCTOR
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Identidade
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patientProfile PatientProfile?
+  doctorProfile  DoctorProfile?
+
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Perfis
+// ─────────────────────────────────────────────────────────────────────────
+
+model PatientProfile {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  birthDate   DateTime?
+  phone       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  doctorLinks       DoctorPatientLink[]
+  devices           Device[]
+  examinations      Examination[]
+  symptomReports    SymptomReport[]
+  consentRecords    ConsentRecord[]
+
+  @@map("patient_profiles")
+}
+
+model DoctorProfile {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  crm        String   @unique
+  specialty  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  patientLinks         DoctorPatientLink[]
+  medicalObservations  MedicalObservation[]
+
+  @@map("doctor_profiles")
+}
+
+model DoctorPatientLink {
+  id         String     @id @default(uuid())
+  doctorId   String
+  doctor     DoctorProfile   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId  String
+  patient    PatientProfile  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  status     LinkStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  revokedAt  DateTime?
+
+  @@unique([doctorId, patientId])
+  @@index([patientId])
+  @@map("doctor_patient_links")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Dispositivo
+// ─────────────────────────────────────────────────────────────────────────
+
+model Device {
+  id               String       @id @default(uuid())
+  hardwareId       String       @unique // ex: "ESP32-001", gravado no firmware
+  secretHash       String       // hash do segredo usado para autenticar o device na API
+  name             String?
+  status           DeviceStatus @default(ACTIVE)
+  ownerPatientId   String?
+  ownerPatient     PatientProfile? @relation(fields: [ownerPatientId], references: [id])
+  lastSeenAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  examinations Examination[]
+
+  @@map("devices")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Exame / captura térmica
+// ─────────────────────────────────────────────────────────────────────────
+
+model Examination {
+  id                 String            @id @default(uuid())
+  patientId          String
+  patient            PatientProfile    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  deviceId           String?
+  device             Device?           @relation(fields: [deviceId], references: [id])
+  status             ExaminationStatus @default(RECEIVED)
+  failureReason      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  reviewedAt         DateTime?
+
+  thermalCapture      ThermalCapture?
+  symptomReports      SymptomReport[]
+  medicalObservations MedicalObservation[]
+
+  @@index([patientId])
+  @@map("examinations")
+}
+
+model ThermalCapture {
+  id               String   @id @default(uuid())
+  examinationId    String   @unique
+  examination      Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+
+  // Dados brutos recebidos do dispositivo
+  width            Int
+  height           Int
+  unit             String   @default("celsius")
+  rawTemperatures  Json     // matriz achatada de temperaturas, nunca exposta à paciente
+  capturedAt       DateTime
+
+  // Resultado do processamento (services/thermal-processor)
+  storageBucket    String?
+  storageKey       String?  // chave do PNG gerado no storage — nunca uma URL pública
+  minTemp          Float?
+  maxTemp          Float?
+  avgTemp          Float?
+  processedAt      DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("thermal_captures")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Sintomas e observações médicas
+// ─────────────────────────────────────────────────────────────────────────
+
+model SymptomReport {
+  id             String       @id @default(uuid())
+  patientId      String
+  patient        PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  examinationId  String?
+  examination    Examination? @relation(fields: [examinationId], references: [id])
+  description    String
+  severity       Int          @default(1) // 1-5
+  reportedAt     DateTime     @default(now())
+
+  @@index([patientId])
+  @@map("symptom_reports")
+}
+
+model MedicalObservation {
+  id                String      @id @default(uuid())
+  examinationId     String
+  examination       Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  doctorId          String
+  doctor            DoctorProfile @relation(fields: [doctorId], references: [id])
+  note              String
+  releasedToPatient Boolean     @default(false) // só o texto liberado aparece no app da paciente
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([examinationId])
+  @@map("medical_observations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auditoria e consentimento (LGPD)
+// ─────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String   // ex: "EXAMINATION_VIEW", "THERMAL_IMAGE_VIEW", "LOGIN"
+  resourceType String   // ex: "Examination", "ThermalCapture"
+  resourceId   String?
+  ipAddress    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+model ConsentRecord {
+  id          String      @id @default(uuid())
+  patientId   String
+  patient     PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type        ConsentType
+  version     String
+  granted     Boolean
+  grantedAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([patientId])
+  @@map("consent_records")
+}
