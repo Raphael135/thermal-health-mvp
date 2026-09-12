@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -90,6 +92,23 @@ export class AuthService {
     if (!passwordMatches) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }
+
+    return this.issueTokensForUser(user.id, user.email, user.role);
+  }
+
+  /**
+   * Login SEM senha, só para acelerar testes manuais locais. Só funciona com
+   * ALLOW_DEV_LOGIN=true no .env — nunca deve ser habilitado em produção.
+   * Ver docs/DECISIONS.md.
+   */
+  async devLogin(email: string): Promise<TokenPair> {
+    if (process.env.ALLOW_DEV_LOGIN !== 'true') {
+      throw new ForbiddenException('Login de desenvolvimento desabilitado (ALLOW_DEV_LOGIN != true).');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new NotFoundException('Usuário não encontrado.');
+    if (!user.isActive) throw new UnauthorizedException('Conta desativada.');
 
     return this.issueTokensForUser(user.id, user.email, user.role);
   }

@@ -4,6 +4,7 @@ import { RegisterPatientDto } from './dto/register-patient.dto';
 import { RegisterDoctorDto } from './dto/register-doctor.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { DevLoginDto } from './dto/dev-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -23,6 +24,13 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  // Login sem senha — só funciona com ALLOW_DEV_LOGIN=true. Nunca habilitar em produção.
+  @HttpCode(HttpStatus.OK)
+  @Post('dev-login')
+  devLogin(@Body() dto: DevLoginDto) {
+    return this.authService.devLogin(dto.email);
   }
 
   @HttpCode(HttpStatus.OK)

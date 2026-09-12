@@ -5,6 +5,8 @@ import { decodeAccessToken, AccessTokenPayload } from './jwt';
 interface AuthContextValue {
   user: AccessTokenPayload | null;
   login: (email: string, password: string) => Promise<void>;
+  /** Login sem senha — só funciona se a API tiver ALLOW_DEV_LOGIN=true. */
+  devLogin: (email: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -28,6 +30,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>('/auth/login', {
           method: 'POST',
           body: JSON.stringify({ email, password }),
+        });
+        authStorage.setTokens(tokens);
+        setUser(decodeAccessToken(tokens.accessToken));
+      },
+      devLogin: async (email) => {
+        const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>('/auth/dev-login', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
         });
         authStorage.setTokens(tokens);
         setUser(decodeAccessToken(tokens.accessToken));
