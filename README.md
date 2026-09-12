@@ -108,16 +108,38 @@ Abre em `http://localhost:5173`.
 
 ## App mobile
 
+Hoje o app não usa nenhuma lib nativa de verdade (o BLE é só simulado em JS —
+ver `docs/FUTURE.md`), então dá pra rodar de três jeitos:
+
+**No celular físico, com Expo Go:**
+
 ```bash
 cd apps/mobile
 npm install
 npx expo start
 ```
 
-Requer um Expo Development Build (não funciona no Expo Go puro por causa das
-dependências nativas previstas para BLE real futuro). Para rodar rapidamente sem
-build nativo durante o desenvolvimento inicial, `npx expo start` ainda funciona no
-modo padrão do Expo enquanto nenhuma lib nativa de BLE de verdade for adicionada.
+Instale o app "Expo Go" na loja do seu celular, escaneie o QR code do terminal.
+Celular e PC precisam estar na mesma rede Wi-Fi. Se o app não conseguir falar
+com a API, troque `EXPO_PUBLIC_API_URL` (num `.env` em `apps/mobile/`) de
+`localhost` para o IP da sua máquina na rede local (ex.: `192.168.0.15`).
+
+**Num emulador Android/iOS:** `npm run android` ou `npm run ios` (requer
+Android Studio / Xcode instalados).
+
+**Em modo web, para extensões tipo MobileView (VS Code) ou o próprio navegador:**
+
+```bash
+cd apps/mobile
+npm install
+cp .env.example .env   # EXPO_PUBLIC_API_URL=http://localhost:3000 já funciona aqui
+npm run web
+```
+
+Abre em `http://localhost:8081` — aponte a extensão de preview mobile pra essa URL.
+Importante: como isso roda dentro de um navegador de verdade, a API precisa liberar
+essa origem em `CORS_ORIGIN` (o `.env.example` da raiz já inclui `:8081` e `:19006`
+por padrão — se mudar a porta, adicione-a lá também e reinicie a API).
 
 ## Firmware ESP32
 
