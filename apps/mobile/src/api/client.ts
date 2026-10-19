@@ -1,12 +1,11 @@
+import { getApiUrl } from '../config/server';
 import { useAuthStore } from '../store/auth-store';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 async function refreshAccessToken(): Promise<string | null> {
   const { tokens, setTokens } = useAuthStore.getState();
   if (!tokens) return null;
 
-  const res = await fetch(`${API_URL}/auth/refresh`, {
+  const res = await fetch(`${getApiUrl()}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: tokens.refreshToken }),
@@ -24,7 +23,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const { tokens } = useAuthStore.getState();
 
   const doFetch = (accessToken?: string) =>
-    fetch(`${API_URL}${path}`, {
+    fetch(`${getApiUrl()}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',

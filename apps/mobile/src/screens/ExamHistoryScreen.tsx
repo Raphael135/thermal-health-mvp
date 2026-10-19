@@ -33,6 +33,9 @@ export function ExamHistoryScreen({ navigation }: Props) {
   const { data } = useQuery({
     queryKey: ['examinations', 'me'],
     queryFn: () => apiFetch<PatientExaminationItem[]>('/examinations/me'),
+    // enquanto algum exame ainda está sendo processado, atualiza sozinho
+    refetchInterval: (query) =>
+      query.state.data?.some((e) => e.status === 'RECEIVED' || e.status === 'PROCESSING') ? 3000 : false,
   });
 
   return (

@@ -9,6 +9,7 @@ import { registerSchema, RegisterFormValues } from '../lib/schemas';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { AppButton, AppTextInput, ErrorText, Heading, Label, Subtitle } from '../components/ui';
 import { colors } from '../theme/colors';
+import { ServerSettings, TestBanner } from '../components/TestMode';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -42,6 +43,7 @@ export function RegisterScreen(_props: Props) {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 }}
     >
+      <TestBanner />
       <Heading style={{ marginBottom: 4 }}>Criar conta</Heading>
       <Subtitle style={{ marginBottom: 12 }}>Leva menos de um minuto</Subtitle>
 
@@ -101,6 +103,8 @@ export function RegisterScreen(_props: Props) {
       {error && <ErrorText>{error}</ErrorText>}
 
       <AppButton label="Cadastrar" onPress={handleSubmit(onSubmit)} loading={isSubmitting} style={{ marginTop: 8 }} />
+
+      <ServerSettings />
     </ScrollView>
   );
 }

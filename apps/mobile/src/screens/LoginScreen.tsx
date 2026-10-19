@@ -9,6 +9,7 @@ import { loginSchema, LoginFormValues } from '../lib/schemas';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { AppButton, AppTextInput, ErrorText, Heading, Label, Subtitle } from '../components/ui';
 import { FlamingoLogo } from '../components/FlamingoLogo';
+import { ServerSettings, TestBanner } from '../components/TestMode';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 
@@ -41,6 +42,8 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 24, gap: 14 }}>
+      <TestBanner />
+
       <View style={{ alignItems: 'center', marginBottom: 12 }}>
         <FlamingoLogo size={88} />
         <Heading style={{ marginTop: 16 }}>Thermal Health</Heading>
@@ -91,6 +94,8 @@ export function LoginScreen({ navigation }: Props) {
           Criar conta
         </Text>
       </TouchableOpacity>
+
+      <ServerSettings />
     </View>
   );
 }

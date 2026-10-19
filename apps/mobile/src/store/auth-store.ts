@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { getApiUrl, loadApiUrl } from '../config/server';
 
 interface Tokens {
   accessToken: string;
@@ -14,7 +15,6 @@ interface AuthState {
 }
 
 const STORAGE_KEY = 'thermal-health/auth-tokens';
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 /**
  * Login automático sem senha, só para a fase de teste — evita ter que digitar
@@ -27,7 +27,7 @@ async function tryDevAutoLogin(): Promise<Tokens | null> {
 
   const email = process.env.EXPO_PUBLIC_DEV_LOGIN_EMAIL ?? 'paciente@teste.com';
   try {
-    const res = await fetch(`${API_URL}/auth/dev-login`, {
+    const res = await fetch(`${getApiUrl()}/auth/dev-login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -51,6 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ tokens });
   },
   hydrate: async () => {
+    await loadApiUrl();
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     let tokens: Tokens | null = raw ? JSON.parse(raw) : null;
 

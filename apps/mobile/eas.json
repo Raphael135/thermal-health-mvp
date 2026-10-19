@@ -1,0 +1,18 @@
+{
+  "cli": {
+    "version": ">= 10.0.0"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_TEST_MODE": "true",
+        "EXPO_PUBLIC_ALLOW_DEV_LOGIN": "false",
+        "EXPO_PUBLIC_API_URL": "https://troque-pela-url-do-tunel.invalid"
+      }
+    }
+  }
+}

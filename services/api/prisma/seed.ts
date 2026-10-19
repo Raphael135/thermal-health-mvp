@@ -11,7 +11,9 @@ async function main() {
     return;
   }
 
-  const passwordHash = await argon2.hash('Admin@12345');
+  // Em ambiente exposto, defina SEED_ADMIN_PASSWORD; o padrão é só para uso local.
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345';
+  const passwordHash = await argon2.hash(adminPassword);
   await prisma.user.create({
     data: {
       email: adminEmail,
@@ -21,7 +23,11 @@ async function main() {
     },
   });
 
-  console.log(`Admin criado: ${adminEmail} / senha: Admin@12345 (troque em produção)`);
+  console.log(
+    process.env.SEED_ADMIN_PASSWORD
+      ? `Admin criado: ${adminEmail} (senha vinda de SEED_ADMIN_PASSWORD)`
+      : `Admin criado: ${adminEmail} / senha: Admin@12345 (padrão local; NÃO use em ambiente exposto)`,
+  );
 }
 
 main()

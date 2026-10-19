@@ -1,4 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Device, ExaminationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
@@ -18,6 +25,28 @@ const PATIENT_SAFE_SELECT = {
     select: { id: true, note: true, createdAt: true, doctor: { select: { fullName: true } } },
   },
 } as const;
+
+const DEMO_WIDTH = 32;
+const DEMO_HEIGHT = 24;
+const DEMO_EXAMINATIONS_PER_PATIENT = 10;
+
+// Quadro térmico FALSO (fundo ~32 °C, uma região mais quente em posição aleatória e ruído),
+// no mesmo formato do MLX90640. Não representa nenhuma medição real.
+function generateDemoMatrix(width: number, height: number): number[] {
+  const baseline = 31 + Math.random();
+  const hotX = width * (0.3 + Math.random() * 0.4);
+  const hotY = height * (0.3 + Math.random() * 0.4);
+  const values: number[] = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const distance = Math.hypot(x - hotX, y - hotY);
+      const hotspot = Math.max(0, 4 - distance * 0.35);
+      const noise = (Math.random() - 0.5) * 0.6;
+      values.push(Number((baseline + hotspot + noise).toFixed(2)));
+    }
+  }
+  return values;
+}
 
 @Injectable()
 export class ExaminationsService {
@@ -39,18 +68,61 @@ export class ExaminationsService {
       throw new BadRequestException('O tamanho da matriz de temperaturas não bate com width*height.');
     }
 
+    return this.createExamination(dto.patientId, device.id, {
+      width: dto.width,
+      height: dto.height,
+      unit: dto.unit,
+      temperatures: dto.temperatures,
+      capturedAt: new Date(dto.capturedAt),
+    });
+  }
+
+  /**
+   * Captura de DEMONSTRAÇÃO, sem aparelho: gera uma matriz térmica sintética para a paciente
+   * logada e segue o mesmo caminho de uma captura real (fila, worker, processador). Só existe
+   * com ALLOW_DEMO_CAPTURE=true; serve para testar o app antes de haver hardware.
+   */
+  async createDemoExamination(patientProfileId: string) {
+    if (process.env.ALLOW_DEMO_CAPTURE !== 'true') {
+      throw new NotFoundException();
+    }
+
+    const existing = await this.prisma.examination.count({
+      where: { patientId: patientProfileId, deviceId: null },
+    });
+    if (existing >= DEMO_EXAMINATIONS_PER_PATIENT) {
+      throw new HttpException(
+        `Limite de ${DEMO_EXAMINATIONS_PER_PATIENT} exames de demonstração por paciente atingido.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return this.createExamination(patientProfileId, null, {
+      width: DEMO_WIDTH,
+      height: DEMO_HEIGHT,
+      unit: 'celsius',
+      temperatures: generateDemoMatrix(DEMO_WIDTH, DEMO_HEIGHT),
+      capturedAt: new Date(),
+    });
+  }
+
+  private async createExamination(
+    patientId: string,
+    deviceId: string | null,
+    capture: { width: number; height: number; unit: string; temperatures: number[]; capturedAt: Date },
+  ) {
     const examination = await this.prisma.examination.create({
       data: {
-        patientId: dto.patientId,
-        deviceId: device.id,
+        patientId,
+        deviceId,
         status: ExaminationStatus.RECEIVED,
         thermalCapture: {
           create: {
-            width: dto.width,
-            height: dto.height,
-            unit: dto.unit,
-            rawTemperatures: dto.temperatures,
-            capturedAt: new Date(dto.capturedAt),
+            width: capture.width,
+            height: capture.height,
+            unit: capture.unit,
+            rawTemperatures: capture.temperatures,
+            capturedAt: capture.capturedAt,
           },
         },
       },

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -10,6 +10,13 @@ import { ExaminationsService } from './examinations.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ExaminationsController {
   constructor(private readonly examinationsService: ExaminationsService) {}
+
+  // Captura de demonstração (sem aparelho). Só funciona com ALLOW_DEMO_CAPTURE=true.
+  @Post('demo')
+  @Roles(Role.PATIENT)
+  createDemo(@CurrentUser() user: AuthenticatedUser) {
+    return this.examinationsService.createDemoExamination(user.patientProfileId!);
+  }
 
   @Get('me')
   @Roles(Role.PATIENT)
