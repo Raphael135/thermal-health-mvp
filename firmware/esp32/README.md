@@ -9,7 +9,8 @@ Projeto ESP-IDF para o dispositivo de captura: lê um quadro térmico de 32×24 
 |---|---|
 | Leitura do MLX90640 (I2C, biblioteca oficial da Melexis) | Escrita e conferida em simulação no PC. **Ainda não compilada com o ESP-IDF nem testada no aparelho.** |
 | Wi-Fi (station) e envio HTTPS para a API | Escritos, nunca rodados em hardware |
-| BLE de pareamento (`ble_provisioning.c`) | Só o esqueleto, falta implementar o NimBLE |
+| App mobile usando este BLE | Não existe ainda: o `DeviceService` do app continua simulado |
+| BLE (`ble_provisioning.c`, NimBLE): pareamento, Wi-Fi, `patientId`, comando e status | Escrito e com o formato dos dados testado no PC. **Nunca compilado com o ESP-IDF nem testado com um celular.** Protocolo em `docs/BLE_PROTOCOL.md` |
 
 ## Pré-requisitos
 
@@ -49,6 +50,20 @@ Antes de compilar, edite `main/device_config.h`:
 - `DEVICE_SECRET_PLACEHOLDER`: segredo retornado ao cadastrar o dispositivo
   (`POST /admin/devices`). Em produção, gravar em NVS, nunca em código-fonte.
 - `API_BASE_URL`: URL da API (`services/api`), com HTTPS em produção.
+
+## Pareamento BLE
+
+O aparelho anuncia com o nome `DEVICE_HARDWARE_ID` (ex.: `ESP32-001`). O app pareia, escreve o
+`patientId` e o Wi-Fi, manda o comando de captura e acompanha o status por notificação. Tudo
+descrito em [`docs/BLE_PROTOCOL.md`](../../docs/BLE_PROTOCOL.md), com os UUIDs e os formatos.
+
+Para testar **sem o app**, use um aplicativo genérico de BLE no celular (ex.: nRF Connect): conecte,
+pareie, escreva nas características e veja o status mudar. O formato dos bytes está no documento.
+
+- Por padrão o pareamento é *Just Works* (criptografado, mas sem autenticar o celular). Para exigir
+  uma senha de 6 dígitos, defina `THERMAL_BLE_PASSKEY` no menuconfig.
+- O Wi-Fi e o envio para a API rodam numa task própria (`worker`), nunca na task do BLE.
+- O `patientId` recebido é guardado na NVS e sobrevive a reinício.
 
 ## Testando o sensor na bancada
 
@@ -93,17 +108,23 @@ Sem o sensor ligado, `THERMAL_SENSOR_SIMULATED` gera quadros falsos para testar 
 - `main/thermal_sensor.c`: lê o sensor e entrega 768 temperaturas; descarta o quadro inteiro se
   algum valor for impossível (NaN, abaixo de -40 °C ou acima de 300 °C).
 - `main/Kconfig.projbuild`: opções do menuconfig.
+- `main/ble_provisioning.c`: serviço GATT (NimBLE). `main/ble_protocol.c`: formatos dos dados, sem
+  dependência do NimBLE.
+- `main/main.c`: task de trabalho que recebe os pedidos do BLE por fila (Wi-Fi, `patientId`, captura).
 - `main/api_client.c`: monta o JSON e faz o POST para `/device-captures` com os headers de
   autenticação do dispositivo.
-- `main/wifi_manager.c`, `main/ble_provisioning.c`: Wi-Fi e BLE.
+- `main/wifi_manager.c`: Wi-Fi.
 
 ## O que falta para produção
 
 1. Compilar com o ESP-IDF e validar no aparelho (nada disso rodou em hardware ainda).
-2. Implementar o serviço GATT completo em `ble_provisioning.c` com NimBLE. Quando existir, a
-   captura e o envio HTTPS **não** devem rodar dentro do callback do BLE (a task do BLE tem pilha
-   pequena, e o HTTPS precisa de mais): faça o callback só avisar uma task própria de captura.
-3. Gravar `DEVICE_HARDWARE_ID`/segredo em NVS durante a fabricação, não em `.h`.
-4. Validar o certificado TLS com a CA correta em `api_client.c`.
-5. Receber o `patientId` associado via BLE (hoje é um placeholder vazio em `main.c`).
-6. `capturedAt` em `api_client.c` ainda é uma data fixa; usar a hora real (SNTP).
+2. Testar o BLE com um celular de verdade (nRF Connect primeiro, depois o app) e ajustar o que o
+   ESP-IDF real apontar. Só existe teste do formato dos dados.
+3. Trocar o `DeviceService` simulado do app por BLE real (`react-native-ble-plx`) seguindo o
+   `docs/BLE_PROTOCOL.md`.
+4. Senha de pareamento própria de cada aparelho (hoje é uma só, ou nenhuma).
+5. Gravar `DEVICE_HARDWARE_ID`/segredo em NVS durante a fabricação, não em `.h`.
+6. Validar o certificado TLS com a CA correta em `api_client.c`.
+7. `capturedAt` em `api_client.c` ainda é uma data fixa; usar a hora real (SNTP).
+8. As credenciais do Wi-Fi ficam na flash pelo padrão do ESP-IDF (sem criptografia): ligar a
+   criptografia da flash/NVS antes de produção.

@@ -21,6 +21,16 @@ menu "Thermal Health Device"
         help
             Permite desenhar o mapa de calor no PC a partir da saída serial.
 
+    config THERMAL_BLE_PASSKEY
+        int "Senha de pareamento BLE (6 dígitos; 0 = sem senha)"
+        range 0 999999
+        default 0
+        help
+            Com 0 o pareamento é "Just Works": o link é criptografado, mas o aparelho não
+            sabe quem está do outro lado (a senha do Wi-Fi viaja por esse link). Com um
+            valor entre 1 e 999999 o app precisa digitar essa senha para parear, o que
+            protege contra interceptação. Imprima a senha na etiqueta do aparelho.
+
     menu "Sensor MLX90640 (I2C)"
         depends on !THERMAL_SENSOR_SIMULATED
 

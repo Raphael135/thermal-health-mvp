@@ -4,6 +4,7 @@ idf_component_register(
         "thermal_sensor.c"
         "wifi_manager.c"
         "ble_provisioning.c"
+        "ble_protocol.c"
         "api_client.c"
     INCLUDE_DIRS "."
     REQUIRES

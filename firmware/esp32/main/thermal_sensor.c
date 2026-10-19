@@ -49,6 +49,8 @@ int thermal_sensor_read_frame(thermal_frame_t *out_frame) {
 
 #include "MLX90640_API.h"
 #include "mlx90640_i2c_esp32.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 _Static_assert(THERMAL_FRAME_WIDTH * THERMAL_FRAME_HEIGHT == MLX90640_PIXEL_NUM,
                "THERMAL_FRAME_WIDTH x THERMAL_FRAME_HEIGHT precisa ser 32x24 (MLX90640)");
@@ -66,9 +68,18 @@ static paramsMLX90640 s_params;
 static uint16_t s_frame_data[834];
 static float s_to[MLX90640_PIXEL_NUM];
 static bool s_ready;
+// O quadro, os parâmetros e a ponte I2C são compartilhados: uma leitura por vez.
+static SemaphoreHandle_t s_lock;
 
 int thermal_sensor_init(void) {
     s_ready = false;
+    if (s_lock == NULL) {
+        s_lock = xSemaphoreCreateMutex();
+        if (s_lock == NULL) {
+            ESP_LOGE(TAG, "Sem memória para a trava do sensor.");
+            return -6;
+        }
+    }
 
     esp_err_t err = mlx90640_i2c_init(CONFIG_THERMAL_I2C_SDA_GPIO, CONFIG_THERMAL_I2C_SCL_GPIO,
                                       CONFIG_THERMAL_I2C_FREQ_HZ, MLX_ADDR);
@@ -110,7 +121,7 @@ int thermal_sensor_init(void) {
     return 0;
 }
 
-int thermal_sensor_read_frame(thermal_frame_t *out_frame) {
+static int read_frame_locked(thermal_frame_t *out_frame) {
     if (out_frame == NULL || out_frame->temperatures == NULL ||
         out_frame->width != THERMAL_FRAME_WIDTH || out_frame->height != THERMAL_FRAME_HEIGHT) {
         return -1;
@@ -164,6 +175,16 @@ int thermal_sensor_read_frame(thermal_frame_t *out_frame) {
     }
 
     return 0;
+}
+
+int thermal_sensor_read_frame(thermal_frame_t *out_frame) {
+    if (s_lock == NULL) {
+        return -2;
+    }
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    int result = read_frame_locked(out_frame);
+    xSemaphoreGive(s_lock);
+    return result;
 }
 
 #endif

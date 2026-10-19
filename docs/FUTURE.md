@@ -10,7 +10,8 @@ pensada para não bloquear a adição deles depois:
 - Marketplace médico completo / integração com hospitais e prontuários externos.
 - Pagamentos e planos de assinatura.
 - BLE real no app mobile (MVP usa `DeviceService` com implementação simulada atrás de uma
-  interface — trocar a implementação depois não deve exigir mudança de tela).
+  interface — trocar a implementação depois não deve exigir mudança de tela). O lado do
+  firmware já está escrito, mas nunca foi testado com um celular; protocolo em `docs/BLE_PROTOCOL.md`.
 - Validar no aparelho a leitura do sensor MLX90640 no firmware (o driver está escrito e
   conferido em simulação, mas nunca rodou em um ESP32-S3 de verdade; ver `firmware/esp32/README.md`).
 

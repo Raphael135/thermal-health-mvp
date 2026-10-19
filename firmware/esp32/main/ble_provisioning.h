@@ -1,16 +1,25 @@
 #pragma once
 
-// Provisionamento via BLE: o app mobile descobre o dispositivo, conecta e envia
-// as credenciais Wi-Fi, além de comandos como "iniciar captura". Esta é a
-// contraparte do DeviceService do app (apps/mobile/src/services/DeviceService.ts).
+#include <stdint.h>
+#include "ble_protocol.h"
+
+// Serviço BLE (NimBLE, o dispositivo é o "periférico"): o app descobre o aparelho, pareia,
+// envia o Wi-Fi e o patientId, manda iniciar a captura e acompanha o status.
+// Contraparte do DeviceService do app. Protocolo em docs/BLE_PROTOCOL.md.
 //
-// Implementação de referência: NimBLE (CONFIG_BT_NIMBLE_ENABLED=y, ver
-// sdkconfig.defaults). Este arquivo documenta o contrato; o corpo em
-// ble_provisioning.c contém a estrutura do serviço GATT com TODOs nos pontos
-// que dependem da biblioteca NimBLE (registro de serviço, callbacks de escrita).
+// IMPORTANTE: os callbacks abaixo rodam na task do NimBLE. Não podem bloquear nem fazer
+// trabalho pesado (Wi-Fi, HTTPS, gravar em flash, ler o sensor): só copiar os dados e
+// avisar outra task, como faz o main.c.
+typedef struct {
+    void (*on_wifi_credentials)(const char *ssid, const char *password);
+    void (*on_patient_id)(const char *patient_id);
+    void (*on_start_capture)(void);
+} ble_provisioning_callbacks_t;
 
-typedef void (*ble_on_wifi_credentials_cb)(const char *ssid, const char *password);
-typedef void (*ble_on_start_capture_cb)(void);
+// Sobe a pilha BLE e começa a anunciar (advertising) com o nome DEVICE_HARDWARE_ID.
+// Retorna 0 em sucesso, != 0 se a pilha não iniciou (o motivo vai para o log).
+int ble_provisioning_init(const ble_provisioning_callbacks_t *callbacks);
 
-int ble_provisioning_init(ble_on_wifi_credentials_cb on_wifi_credentials, ble_on_start_capture_cb on_start_capture);
-int ble_provisioning_start_advertising(void);
+// Atualiza o status lido pelo app (e notifica quem estiver inscrito). Pode ser chamada de
+// qualquer task. `flags` combina BLE_FLAG_*.
+void ble_provisioning_update_status(ble_device_state_t state, uint8_t flags, ble_device_error_t error);
