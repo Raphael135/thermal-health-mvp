@@ -12,7 +12,7 @@
 // Endpoint da API principal (services/api). Usar HTTPS em produção.
 #define API_BASE_URL "https://api.thermal-health.local"
 
-// Dimensões do frame térmico simulado/real (ex.: sensor 32x24, tipo AMG8833 teria 8x8;
-// ajustar conforme o sensor definido futuramente).
+// Dimensões do frame térmico: fixas pelo MLX90640 (32 colunas x 24 linhas = 768 pixels).
+// A API e o thermal-processor esperam exatamente esse formato.
 #define THERMAL_FRAME_WIDTH 32
 #define THERMAL_FRAME_HEIGHT 24

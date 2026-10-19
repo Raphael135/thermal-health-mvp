@@ -13,4 +13,5 @@ idf_component_register(
         nvs_flash
         bt
         json
+        mlx90640
 )

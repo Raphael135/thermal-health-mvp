@@ -11,7 +11,8 @@ pensada para não bloquear a adição deles depois:
 - Pagamentos e planos de assinatura.
 - BLE real no app mobile (MVP usa `DeviceService` com implementação simulada atrás de uma
   interface — trocar a implementação depois não deve exigir mudança de tela).
-- Sensor térmico real no firmware (MVP usa `ThermalSensor.readFrame()` simulado).
+- Validar no aparelho a leitura do sensor MLX90640 no firmware (o driver está escrito e
+  conferido em simulação, mas nunca rodou em um ESP32-S3 de verdade; ver `firmware/esp32/README.md`).
 
 ## Onde a IA entraria depois
 

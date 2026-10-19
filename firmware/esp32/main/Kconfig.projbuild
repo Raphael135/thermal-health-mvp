@@ -1,0 +1,71 @@
+menu "Thermal Health Device"
+
+    config THERMAL_SENSOR_SIMULATED
+        bool "Usar sensor térmico SIMULADO (sem hardware)"
+        default n
+        help
+            Gera quadros térmicos falsos em vez de ler o MLX90640. Serve para testar
+            Wi-Fi, BLE e envio para a API numa placa sem o sensor ligado.
+
+    config THERMAL_SELFTEST_ON_BOOT
+        bool "Ler o sensor em loop ao ligar e mostrar mín/máx/média no log"
+        default y
+        help
+            Útil na bancada para conferir fiação e leitura sem precisar de BLE nem
+            Wi-Fi. Desligue quando o fluxo de captura pelo app estiver pronto.
+
+    config THERMAL_SERIAL_DUMP
+        bool "Imprimir cada quadro na serial como uma linha CSV (FRAME,32,24,...)"
+        depends on THERMAL_SELFTEST_ON_BOOT
+        default n
+        help
+            Permite desenhar o mapa de calor no PC a partir da saída serial.
+
+    menu "Sensor MLX90640 (I2C)"
+        depends on !THERMAL_SENSOR_SIMULATED
+
+        config THERMAL_I2C_SDA_GPIO
+            int "GPIO do SDA"
+            range 0 48
+            default 8
+            help
+                No ESP32-S3 não existem os GPIO 22 a 25, e os 26 a 32 são da flash/PSRAM.
+                Confira o esquema da sua placa.
+
+        config THERMAL_I2C_SCL_GPIO
+            int "GPIO do SCL"
+            range 0 48
+            default 9
+
+        config THERMAL_I2C_FREQ_HZ
+            int "Frequência do I2C (Hz)"
+            range 100000 1000000
+            default 400000
+            help
+                O MLX90640 aceita até 1 MHz. Use pull-ups externos de 4,7 kΩ acima de 100 kHz.
+
+        config THERMAL_MLX90640_ADDR
+            hex "Endereço I2C do sensor (7 bits)"
+            range 0x08 0x77
+            default 0x33
+
+        config THERMAL_REFRESH_RATE
+            int "Taxa de atualização (0=0,5 Hz, 1=1 Hz, 2=2 Hz, 3=4 Hz, 4=8 Hz)"
+            range 0 4
+            default 2
+            help
+                Taxas menores dão menos ruído. A 0,5 Hz cada meio quadro leva 2 s, então
+                aumente também o timeout abaixo.
+
+        config THERMAL_EMISSIVITY_MILLI
+            int "Emissividade x 1000 (pele humana: 980)"
+            range 100 1000
+            default 980
+
+        config THERMAL_FRAME_TIMEOUT_MS
+            int "Tempo máximo para o sensor entregar meio quadro (ms)"
+            range 500 10000
+            default 3000
+    endmenu
+
+endmenu

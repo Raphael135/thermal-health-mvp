@@ -1,9 +1,11 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "sdkconfig.h"
 
 #include "device_config.h"
 #include "thermal_sensor.h"
@@ -62,6 +64,49 @@ static void on_start_capture_received(void) {
     free(frame.temperatures);
 }
 
+#if CONFIG_THERMAL_SELFTEST_ON_BOOT
+// Lê o sensor em loop e mostra mín/máx/média: confere fiação e leitura na bancada,
+// sem depender de BLE, Wi-Fi nem da API. Não retorna.
+static void thermal_selftest_loop(void) {
+    const int pixels = THERMAL_FRAME_WIDTH * THERMAL_FRAME_HEIGHT;
+    thermal_frame_t frame = {
+        .width = THERMAL_FRAME_WIDTH,
+        .height = THERMAL_FRAME_HEIGHT,
+        .temperatures = malloc(sizeof(float) * pixels),
+    };
+    if (frame.temperatures == NULL) {
+        ESP_LOGE(TAG, "Sem memória para o autoteste do sensor.");
+        return;
+    }
+
+    while (1) {
+        if (thermal_sensor_read_frame(&frame) == 0) {
+            float min = frame.temperatures[0];
+            float max = frame.temperatures[0];
+            float sum = 0.0f;
+            for (int i = 0; i < pixels; i++) {
+                float t = frame.temperatures[i];
+                if (t < min) min = t;
+                if (t > max) max = t;
+                sum += t;
+            }
+            ESP_LOGI(TAG, "Quadro: mín %.2f °C | máx %.2f °C | média %.2f °C", min, max, sum / pixels);
+
+#if CONFIG_THERMAL_SERIAL_DUMP
+            printf("FRAME,%d,%d", THERMAL_FRAME_WIDTH, THERMAL_FRAME_HEIGHT);
+            for (int i = 0; i < pixels; i++) {
+                printf(",%.2f", frame.temperatures[i]);
+            }
+            printf("\n");
+#endif
+        } else {
+            ESP_LOGE(TAG, "Leitura do sensor falhou; tentando de novo.");
+        }
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
+#endif
+
 void app_main(void) {
     esp_err_t nvs_result = nvs_flash_init();
     if (nvs_result == ESP_ERR_NVS_NO_FREE_PAGES || nvs_result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -72,12 +117,18 @@ void app_main(void) {
 
     ESP_LOGI(TAG, "Inicializando dispositivo %s", DEVICE_HARDWARE_ID);
 
-    thermal_sensor_init();
+    if (thermal_sensor_init() != 0) {
+        ESP_LOGE(TAG, "Sensor térmico indisponível: as capturas vão falhar até ele responder.");
+    }
     wifi_manager_init();
     ble_provisioning_init(on_wifi_credentials_received, on_start_capture_received);
     ble_provisioning_start_advertising();
 
     ESP_LOGI(TAG, "Dispositivo pronto. Aguardando pareamento via BLE.");
+
+#if CONFIG_THERMAL_SELFTEST_ON_BOOT
+    thermal_selftest_loop();
+#endif
 
     // Loop principal — em uma implementação completa, tratar reconexão de
     // Wi-Fi, watchdog, deep sleep entre capturas, etc.
