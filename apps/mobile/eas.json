@@ -11,6 +11,19 @@
       "env": {
         "EXPO_PUBLIC_TEST_MODE": "true",
         "EXPO_PUBLIC_ALLOW_DEV_LOGIN": "false",
+        "EXPO_PUBLIC_API_URL": "https://troque-pela-url-do-tunel.invalid",
+        "EXPO_PUBLIC_DEVICE_MODE": "simulated"
+      }
+    },
+    "device": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_TEST_MODE": "true",
+        "EXPO_PUBLIC_ALLOW_DEV_LOGIN": "false",
+        "EXPO_PUBLIC_DEVICE_MODE": "ble",
         "EXPO_PUBLIC_API_URL": "https://troque-pela-url-do-tunel.invalid"
       }
     }

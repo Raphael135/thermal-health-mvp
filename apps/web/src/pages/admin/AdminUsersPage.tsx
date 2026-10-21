@@ -8,8 +8,8 @@ interface AdminUser {
   role: string;
   isActive: boolean;
   createdAt: string;
-  patientProfile: { fullName: string } | null;
-  doctorProfile: { fullName: string; crm: string } | null;
+  patientProfile: { id: string; fullName: string } | null;
+  doctorProfile: { id: string; fullName: string; crm: string } | null;
 }
 
 export function AdminUsersPage() {
@@ -35,6 +35,12 @@ export function AdminUsersPage() {
               <p className="text-xs text-slate-500">
                 {u.email} · {u.role} {u.doctorProfile && `· CRM ${u.doctorProfile.crm}`}
               </p>
+              {(u.patientProfile ?? u.doctorProfile) && (
+                <p className="text-xs text-slate-400">
+                  ID do perfil (para vínculos e aparelhos):{' '}
+                  <code className="select-all font-mono">{(u.patientProfile ?? u.doctorProfile)!.id}</code>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Badge tone={u.isActive ? 'success' : 'danger'}>{u.isActive ? 'ativo' : 'inativo'}</Badge>

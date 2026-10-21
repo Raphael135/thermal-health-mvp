@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DeviceService, CaptureStatus } from '../services/DeviceService';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { FlamingoLogo } from '../components/FlamingoLogo';
+import { ErrorText } from '../components/ui';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 
@@ -21,13 +22,22 @@ const labels: Record<CaptureStatus, string> = {
 export function CaptureStatusScreen({ route, navigation }: Props) {
   const { deviceId } = route.params;
   const [status, setStatus] = useState<CaptureStatus>('idle');
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     const interval = setInterval(async () => {
       const current = await DeviceService.getCaptureStatus(deviceId);
+      if (!active) return;
       setStatus(current);
+      setMessage(current === 'error' ? DeviceService.getErrorMessage(deviceId) : null);
+      if (current === 'done' || current === 'error') clearInterval(interval);
     }, 500);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      DeviceService.disconnect(deviceId).catch(() => undefined);
+    };
   }, [deviceId]);
 
   return (
@@ -51,6 +61,8 @@ export function CaptureStatusScreen({ route, navigation }: Props) {
       >
         {labels[status]}
       </Text>
+
+      {message && <ErrorText style={{ textAlign: 'center' }}>{message}</ErrorText>}
 
       {status === 'done' && (
         <Text

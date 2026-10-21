@@ -73,7 +73,7 @@ export class ExaminationsService {
       height: dto.height,
       unit: dto.unit,
       temperatures: dto.temperatures,
-      capturedAt: new Date(dto.capturedAt),
+      capturedAt: dto.capturedAt ? new Date(dto.capturedAt) : new Date(),
     });
   }
 

@@ -24,7 +24,21 @@
       }
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "neverForLocation": true,
+          "bluetoothAlwaysPermission": "O app usa o Bluetooth para parear e controlar o aparelho térmico."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "39de711e-b60c-4d99-a15d-4a0f2f424ae3"
+      }
+    },
+    "owner": "thermal-health"
   }
 }

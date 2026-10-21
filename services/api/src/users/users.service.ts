@@ -14,8 +14,8 @@ export class UsersService {
         role: true,
         isActive: true,
         createdAt: true,
-        patientProfile: { select: { fullName: true } },
-        doctorProfile: { select: { fullName: true, crm: true } },
+        patientProfile: { select: { id: true, fullName: true } },
+        doctorProfile: { select: { id: true, fullName: true, crm: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

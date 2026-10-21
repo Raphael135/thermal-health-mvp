@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsUUID, Min } from 'class-validator';
+import { ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class CreateThermalCaptureDto {
   @IsUUID()
@@ -20,6 +20,9 @@ export class CreateThermalCaptureDto {
   @IsNumber({}, { each: true })
   temperatures!: number[];
 
+  // Opcional: o aparelho só manda se conseguiu acertar o relógio (SNTP). Sem isso, vale a hora de
+  // recebimento no servidor.
+  @IsOptional()
   @IsDateString()
-  capturedAt!: string;
+  capturedAt?: string;
 }
