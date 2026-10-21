@@ -1,16 +1,13 @@
 #pragma once
 
-// Identificação única do dispositivo — deve bater com o `hardwareId` cadastrado
-// no painel admin (DevicesModule, services/api). Em produção, gravar isso na
-// NVS durante a fabricação em vez de hardcoded.
-#define DEVICE_HARDWARE_ID "ESP32-001"
+#include "sdkconfig.h"
 
-// Segredo do dispositivo, retornado UMA VEZ pelo endpoint POST /admin/devices.
-// Em produção: armazenar em NVS criptografada, nunca em código-fonte versionado.
-#define DEVICE_SECRET_PLACEHOLDER "SUBSTITUA_PELO_SEGREDO_GERADO_NO_PAINEL_ADMIN"
-
-// Endpoint da API principal (services/api). Usar HTTPS em produção.
-#define API_BASE_URL "https://api.thermal-health.local"
+// Identificação, segredo e endereço da API vêm do menuconfig ("Thermal Health Device"), que grava
+// no sdkconfig local (fora do Git). Nada disso deve ser escrito neste arquivo.
+// Em produção o ideal é gravar o segredo na NVS criptografada durante a fabricação.
+#define DEVICE_HARDWARE_ID CONFIG_THERMAL_DEVICE_ID
+#define DEVICE_SECRET CONFIG_THERMAL_DEVICE_SECRET
+#define API_BASE_URL CONFIG_THERMAL_API_URL
 
 // Dimensões do frame térmico: fixas pelo MLX90640 (32 colunas x 24 linhas = 768 pixels).
 // A API e o thermal-processor esperam exatamente esse formato.

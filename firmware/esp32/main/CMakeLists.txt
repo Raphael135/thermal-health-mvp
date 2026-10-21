@@ -11,6 +11,8 @@ idf_component_register(
         esp_wifi
         esp_http_client
         esp-tls
+        esp_netif
+        mbedtls
         nvs_flash
         bt
         json

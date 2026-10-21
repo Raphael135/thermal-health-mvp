@@ -2,7 +2,8 @@
 
 O dispositivo (ESP32-S3) é o **periférico**: anuncia, o app (central) conecta. Implementação no
 firmware: `firmware/esp32/main/ble_provisioning.c` (NimBLE) e `ble_protocol.c` (formatos).
-O app ainda **não** usa isto: o `DeviceService` do mobile continua simulado.
+O app usa isto em `apps/mobile/src/services/BleDeviceService.ts` (bytes em `services/ble/protocol.ts`), mas
+**só foi testado contra o parser do firmware no PC**, nunca com um celular e o aparelho de verdade.
 
 ## Descoberta
 

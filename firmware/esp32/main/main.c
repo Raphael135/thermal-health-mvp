@@ -250,6 +250,10 @@ void app_main(void) {
 
     load_patient_id();
 
+    if (strlen(DEVICE_SECRET) == 0) {
+        ESP_LOGE(TAG, "Segredo do aparelho vazio: a API vai recusar as capturas. Defina-o em menuconfig > Thermal Health Device.");
+    }
+
     if (thermal_sensor_init() != 0) {
         ESP_LOGE(TAG, "Sensor térmico indisponível: as capturas vão falhar até ele responder.");
     }

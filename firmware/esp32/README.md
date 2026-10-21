@@ -9,7 +9,7 @@ Projeto ESP-IDF para o dispositivo de captura: lê um quadro térmico de 32×24 
 |---|---|
 | Leitura do MLX90640 (I2C, biblioteca oficial da Melexis) | Escrita e conferida em simulação no PC. **Ainda não compilada com o ESP-IDF nem testada no aparelho.** |
 | Wi-Fi (station) e envio HTTPS para a API | Escritos, nunca rodados em hardware |
-| App mobile usando este BLE | Não existe ainda: o `DeviceService` do app continua simulado |
+| App mobile usando este BLE (`BleDeviceService`) | Escrito, compila e o formato dos bytes foi conferido contra o parser do firmware. **Nunca testado num celular com o aparelho.** |
 | BLE (`ble_provisioning.c`, NimBLE): pareamento, Wi-Fi, `patientId`, comando e status | Escrito e com o formato dos dados testado no PC. **Nunca compilado com o ESP-IDF nem testado com um celular.** Protocolo em `docs/BLE_PROTOCOL.md` |
 
 ## Pré-requisitos
@@ -44,12 +44,16 @@ idf.py build
 idf.py -p <porta_serial> flash monitor
 ```
 
-Antes de compilar, edite `main/device_config.h`:
+Em `idf.py menuconfig`, menu **Thermal Health Device**:
 
-- `DEVICE_HARDWARE_ID`: deve ser igual ao `hardwareId` cadastrado no painel admin.
-- `DEVICE_SECRET_PLACEHOLDER`: segredo retornado ao cadastrar o dispositivo
-  (`POST /admin/devices`). Em produção, gravar em NVS, nunca em código-fonte.
-- `API_BASE_URL`: URL da API (`services/api`), com HTTPS em produção.
+- **ID do aparelho**: igual ao `hardwareId` cadastrado no painel admin (também é o nome BLE).
+- **Segredo do aparelho**: mostrado UMA vez ao cadastrar o aparelho (`POST /admin/devices`). Fica no
+  `sdkconfig` local, que o `.gitignore` não deixa ir para o repositório. Nunca o coloque em arquivo versionado.
+- **URL da API**, sem barra no final (ex.: o endereço do túnel). Com `https://` o certificado é
+  verificado; com `http://` nada é criptografado nem verificado.
+- **Servidor de hora**: se a rede bloquear NTP, a captura segue sem hora e o servidor usa a hora em que a recebe.
+
+Passo a passo completo, do painel admin até a captura: [`docs/DEVICE_SETUP.md`](../../docs/DEVICE_SETUP.md).
 
 ## Pareamento BLE
 
@@ -120,11 +124,11 @@ Sem o sensor ligado, `THERMAL_SENSOR_SIMULATED` gera quadros falsos para testar 
 1. Compilar com o ESP-IDF e validar no aparelho (nada disso rodou em hardware ainda).
 2. Testar o BLE com um celular de verdade (nRF Connect primeiro, depois o app) e ajustar o que o
    ESP-IDF real apontar. Só existe teste do formato dos dados.
-3. Trocar o `DeviceService` simulado do app por BLE real (`react-native-ble-plx`) seguindo o
-   `docs/BLE_PROTOCOL.md`.
+3. Testar o app (`BleDeviceService`) com o aparelho: é a parte com mais chance de precisar de ajuste
+   (pareamento no Android, MTU, tempos).
 4. Senha de pareamento própria de cada aparelho (hoje é uma só, ou nenhuma).
-5. Gravar `DEVICE_HARDWARE_ID`/segredo em NVS durante a fabricação, não em `.h`.
+5. Gravar o ID e o segredo do aparelho na NVS (criptografada) durante a fabricação; hoje ficam no `sdkconfig`, dentro do binário gravado.
 6. Validar o certificado TLS com a CA correta em `api_client.c`.
-7. `capturedAt` em `api_client.c` ainda é uma data fixa; usar a hora real (SNTP).
+7. Conferir o SNTP e a verificação do certificado HTTPS no aparelho (escritos, só testados no PC).
 8. As credenciais do Wi-Fi ficam na flash pelo padrão do ESP-IDF (sem criptografia): ligar a
    criptografia da flash/NVS antes de produção.

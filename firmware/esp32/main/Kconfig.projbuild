@@ -1,5 +1,33 @@
 menu "Thermal Health Device"
 
+    config THERMAL_DEVICE_ID
+        string "ID do aparelho (hardwareId cadastrado no painel admin)"
+        default "ESP32-001"
+        help
+            Precisa ser igual ao hardwareId do aparelho no painel admin. Também é o nome
+            que o aparelho anuncia por Bluetooth, e o que o app mostra na lista.
+
+    config THERMAL_DEVICE_SECRET
+        string "Segredo do aparelho (mostrado UMA vez ao cadastrá-lo no painel admin)"
+        default ""
+        help
+            Fica no sdkconfig local, que o .gitignore não deixa ir para o repositório. Não
+            coloque o segredo em nenhum arquivo versionado. Sem ele a API recusa as capturas.
+
+    config THERMAL_API_URL
+        string "URL da API, sem barra no final"
+        default "https://api.thermal-health.local"
+        help
+            Ex.: https://alguma-coisa.trycloudflare.com. Com https:// o certificado do servidor
+            é verificado contra os certificados raiz embutidos no firmware.
+
+    config THERMAL_NTP_SERVER
+        string "Servidor de hora (SNTP)"
+        default "pool.ntp.org"
+        help
+            Usado para carimbar a captura. Se a rede bloquear NTP, a captura segue sem hora
+            e o servidor usa o horário em que a recebeu.
+
     config THERMAL_SENSOR_SIMULATED
         bool "Usar sensor térmico SIMULADO (sem hardware)"
         default n

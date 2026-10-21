@@ -1,29 +1,86 @@
 #include "api_client.h"
 #include "device_config.h"
+
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+#include "cJSON.h"
+#include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
-#include "cJSON.h"
+#include "esp_netif_sntp.h"
+#include "freertos/FreeRTOS.h"
 
 static const char *TAG = "api_client";
 
-static char *build_payload(const thermal_frame_t *frame, const char *patient_id) {
+#define SNTP_WAIT_MS 8000
+#define HTTP_TIMEOUT_MS 20000
+// Antes de 2023 o relógio ainda está no padrão do chip (1970): não dá para usar como hora.
+#define MIN_VALID_EPOCH 1700000000
+
+static bool s_sntp_started;
+
+// Tenta acertar o relógio por SNTP. Sem hora a captura segue mesmo assim (o servidor usa o
+// horário em que a recebe), então isto nunca bloqueia o envio por mais de SNTP_WAIT_MS.
+static bool clock_is_valid(void) {
+    if (time(NULL) >= MIN_VALID_EPOCH) {
+        return true;
+    }
+
+    if (!s_sntp_started) {
+        esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_THERMAL_NTP_SERVER);
+        if (esp_netif_sntp_init(&config) != ESP_OK) {
+            ESP_LOGW(TAG, "Não consegui iniciar o SNTP.");
+            return false;
+        }
+        s_sntp_started = true;
+    }
+
+    if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(SNTP_WAIT_MS)) != ESP_OK) {
+        ESP_LOGW(TAG, "Sem resposta do servidor de hora; a captura vai sem horário do aparelho.");
+        return false;
+    }
+    return time(NULL) >= MIN_VALID_EPOCH;
+}
+
+// Duas casas decimais, calculadas em double: um float arredondado e convertido para double volta a
+// virar 30.719999313354492, que o cJSON imprime com 15 dígitos (~3x mais bytes no envio).
+static double round2(float value) {
+    return round((double) value * 100.0) / 100.0;
+}
+
+static char *build_payload(const thermal_frame_t *frame, const char *patient_id, bool with_time) {
     cJSON *root = cJSON_CreateObject();
+    cJSON *temperatures = cJSON_CreateArray();
+    if (root == NULL || temperatures == NULL) {
+        cJSON_Delete(root);
+        cJSON_Delete(temperatures);
+        return NULL;
+    }
+
     cJSON_AddStringToObject(root, "patientId", patient_id);
     cJSON_AddNumberToObject(root, "width", frame->width);
     cJSON_AddNumberToObject(root, "height", frame->height);
     cJSON_AddStringToObject(root, "unit", "celsius");
 
-    cJSON *temperatures = cJSON_CreateArray();
     int total = frame->width * frame->height;
     for (int i = 0; i < total; i++) {
-        cJSON_AddItemToArray(temperatures, cJSON_CreateNumber(frame->temperatures[i]));
+        cJSON_AddItemToArray(temperatures, cJSON_CreateNumber(round2(frame->temperatures[i])));
     }
     cJSON_AddItemToObject(root, "temperatures", temperatures);
 
-    // TODO: usar timestamp real (SNTP) em vez de placeholder fixo.
-    cJSON_AddStringToObject(root, "capturedAt", "2026-01-01T00:00:00Z");
+    if (with_time) {
+        time_t now = time(NULL);
+        struct tm utc;
+        char stamp[32];
+        gmtime_r(&now, &utc);
+        strftime(stamp, sizeof stamp, "%Y-%m-%dT%H:%M:%SZ", &utc);
+        cJSON_AddStringToObject(root, "capturedAt", stamp);
+    }
 
     char *json_string = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
@@ -31,28 +88,43 @@ static char *build_payload(const thermal_frame_t *frame, const char *patient_id)
 }
 
 int api_client_send_capture(const thermal_frame_t *frame, const char *patient_id) {
-    char *payload = build_payload(frame, patient_id);
+    if (strlen(DEVICE_SECRET) == 0) {
+        ESP_LOGE(TAG, "Segredo do aparelho não configurado (menuconfig > Thermal Health Device).");
+        return -1;
+    }
+
+    char *payload = build_payload(frame, patient_id, clock_is_valid());
     if (payload == NULL) {
-        ESP_LOGE(TAG, "Falha ao montar payload JSON.");
+        ESP_LOGE(TAG, "Sem memória para montar o JSON da captura.");
         return -1;
     }
 
     char url[256];
-    snprintf(url, sizeof(url), "%s/device-captures", API_BASE_URL);
+    int url_len = snprintf(url, sizeof url, "%s/device-captures", API_BASE_URL);
+    if (url_len < 0 || url_len >= (int) sizeof url) {
+        ESP_LOGE(TAG, "URL da API longa demais.");
+        free(payload);
+        return -1;
+    }
 
     esp_http_client_config_t config = {
         .url = url,
         .method = HTTP_METHOD_POST,
-        .timeout_ms = 15000,
-        // TODO: em produção, apontar para o certificado CA correto em vez de
-        // aceitar qualquer certificado — nunca usar skip_cert_common_name_check
-        // fora de ambiente de desenvolvimento controlado.
+        .timeout_ms = HTTP_TIMEOUT_MS,
+        // Verifica o certificado do servidor contra os certificados raiz embutidos. Só vale para
+        // https://; com http:// (rede local de teste) nada é verificado nem criptografado.
+        .crt_bundle_attach = esp_crt_bundle_attach,
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == NULL) {
+        ESP_LOGE(TAG, "Falha ao iniciar o cliente HTTP.");
+        free(payload);
+        return -1;
+    }
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_header(client, "x-device-id", DEVICE_HARDWARE_ID);
-    esp_http_client_set_header(client, "x-device-secret", DEVICE_SECRET_PLACEHOLDER);
+    esp_http_client_set_header(client, "x-device-secret", DEVICE_SECRET);
     esp_http_client_set_post_field(client, payload, strlen(payload));
 
     esp_err_t err = esp_http_client_perform(client);
@@ -60,10 +132,18 @@ int api_client_send_capture(const thermal_frame_t *frame, const char *patient_id
 
     if (err == ESP_OK) {
         int status = esp_http_client_get_status_code(client);
-        ESP_LOGI(TAG, "Captura enviada, status HTTP=%d", status);
-        result = (status >= 200 && status < 300) ? 0 : -1;
+        if (status >= 200 && status < 300) {
+            ESP_LOGI(TAG, "Captura enviada (HTTP %d, %u bytes).", status, (unsigned) strlen(payload));
+            result = 0;
+        } else if (status == 401) {
+            ESP_LOGE(TAG, "A API recusou o aparelho (HTTP 401): confira o ID e o segredo no menuconfig e se ele está ativo no painel admin.");
+        } else if (status == 403) {
+            ESP_LOGE(TAG, "A API recusou a captura (HTTP 403): o aparelho precisa estar vinculado a esta paciente no painel admin.");
+        } else {
+            ESP_LOGE(TAG, "A API respondeu HTTP %d.", status);
+        }
     } else {
-        ESP_LOGE(TAG, "Erro HTTP: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Falha de conexão com a API: %s", esp_err_to_name(err));
     }
 
     esp_http_client_cleanup(client);
