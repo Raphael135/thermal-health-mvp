@@ -1,7 +1,11 @@
-# Firmware — ESP32-S3 + sensor térmico MLX90640
+# Firmware — ESP32 / ESP32-S3 + sensor térmico MLX90640
 
 Projeto ESP-IDF para o dispositivo de captura: lê um quadro térmico de 32×24 pixels
 (768 temperaturas em °C) do sensor **MLX90640 D55** e envia para a API.
+
+Funciona no **ESP32 comum** (WROOM/WROVER) e no **ESP32-S3**: escolha o chip com `idf.py set-target`.
+Na dúvida sobre qual placa você tem, leia o que está escrito na tampa metálica do módulo
+(`ESP32-WROOM-32…` = ESP32 comum; `ESP32-S3-WROOM…` = S3).
 
 ## Status
 
@@ -14,31 +18,36 @@ Projeto ESP-IDF para o dispositivo de captura: lê um quadro térmico de 32×24 
 
 ## Pré-requisitos
 
-- [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/get-started/) **5.2 ou mais novo**
+- [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/) **5.2 ou mais novo**
   (usa o driver `i2c_master` novo). A imagem Docker `espressif/idf` serve.
-- Placa com ESP32-S3 e um MLX90640 (breakout com 4 fios: VIN, GND, SDA, SCL).
+- Placa com ESP32 ou ESP32-S3 e um MLX90640 (breakout com 4 fios: VIN, GND, SDA, SCL).
 
 ## Ligação
 
-| MLX90640 | ESP32-S3 |
-|---|---|
-| VIN | 3V3 |
-| GND | GND |
-| SDA | GPIO 8 (padrão, configurável) |
-| SCL | GPIO 9 (padrão, configurável) |
+| MLX90640 | ESP32 | ESP32-S3 |
+|---|---|---|
+| VIN | 3V3 | 3V3 |
+| GND | GND | GND |
+| SDA | GPIO 21 (padrão) | GPIO 8 (padrão) |
+| SCL | GPIO 22 (padrão) | GPIO 9 (padrão) |
+
+Os pinos são configuráveis no menuconfig; o padrão muda conforme o chip. **Use os pinos em que o sensor
+está realmente ligado**, mesmo que sejam outros.
 
 - Pull-ups de **4,7 kΩ** de SDA e SCL para 3V3. A maioria dos breakouts já tem; confira
   o seu. O pull-up interno do ESP32 é fraco para 400 kHz.
-- No ESP32-S3 **não existem os GPIO 22–25**, os 26–32 são da flash/PSRAM e os 33–37 também
-  são usados pela PSRAM nos módulos N8R8/N16R8. O firmware recusa esses pinos e avisa no log
-  em vez de reiniciar.
+- **ESP32:** os GPIO 6–11 são da memória flash (usá-los trava a placa) e os 34–39 só têm entrada.
+  Evite também 0, 2, 5, 12 e 15 (definem o modo de boot) e 16/17 nos módulos WROVER (PSRAM).
+- **ESP32-S3:** não existem os GPIO 22–25, os 26–32 são da flash/PSRAM e os 33–37 também são
+  usados pela PSRAM nos módulos N8R8/N16R8.
+- O firmware recusa os pinos impossíveis e avisa no log, em vez de reiniciar.
 - Endereço I2C do sensor: `0x33`.
 
 ## Compilar e gravar
 
 ```bash
 cd firmware/esp32
-idf.py set-target esp32s3     # só na primeira vez (ou ao mudar de chip)
+idf.py set-target esp32       # ESP32 comum (ou: esp32s3). Só na primeira vez ou ao mudar de chip
 idf.py menuconfig             # menu "Thermal Health Device": pinos, taxa, emissividade...
 idf.py build
 idf.py -p <porta_serial> flash monitor
@@ -89,7 +98,7 @@ Sem o sensor ligado, `THERMAL_SENSOR_SIMULATED` gera quadros falsos para testar 
 
 | Mensagem no log | Causa provável |
 |---|---|
-| `GPIO nn (SCL) não existe no ESP32-S3` | Pino inválido para esse chip; escolha outro no menuconfig |
+| `GPIO nn (SCL) não existe…` / `está ligado à memória flash…` | Pino inválido para esse chip; escolha outro no menuconfig |
 | `Nenhum dispositivo respondeu no endereço 0x33` | Fiação, pull-ups ou endereço |
 | `Falha ao ler/interpretar a calibração (código 3)` | Pixels quebrados demais ou leitura da EEPROM corrompida (fios longos/ruído) |
 | `Não consegui montar um quadro completo` | Taxa baixa demais para o timeout, ou I2C instável |

@@ -12,7 +12,7 @@
  * Cria o barramento I2C e registra o sensor.
  *
  * Retorna ESP_ERR_INVALID_ARG se algum GPIO não existir ou estiver reservado
- * (ex.: GPIO 22-25 não existem no ESP32-S3; 26-32 são da flash/PSRAM) e
+ * (ex.: GPIO 6-11 são da flash no ESP32; 22-25 não existem no ESP32-S3) e
  * ESP_ERR_NOT_FOUND se nada responder no endereço informado (fiação, pull-ups
  * ou endereço errado). Nunca aborta — quem chama decide o que fazer.
  */

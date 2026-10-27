@@ -1,6 +1,6 @@
-# Chip alvo: ESP32-S3. Vale para um projeto novo; num já configurado, rode
-# `idf.py set-target esp32s3` (apaga o sdkconfig antigo e recria a partir deste arquivo).
-CONFIG_IDF_TARGET="esp32s3"
+# O chip NÃO é fixado aqui: funciona no ESP32 e no ESP32-S3. Escolha com
+# `idf.py set-target esp32` ou `idf.py set-target esp32s3` (apaga o sdkconfig e recria a partir
+# deste arquivo).
 
 # A biblioteca da Melexis guarda arrays de 3 KB na pilha ao ler a calibração do
 # sensor (MLX90640_ExtractParameters), e o padrão do IDF é pequeno demais.

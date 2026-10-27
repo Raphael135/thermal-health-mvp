@@ -1,6 +1,6 @@
 # Captura real: do aparelho ao painel da médica
 
-Roteiro para receber uma captura de verdade do ESP32-S3 com o MLX90640.
+Roteiro para receber uma captura de verdade do ESP32 (ou ESP32-S3) com o MLX90640.
 
 **Estado:** o servidor, o app e o firmware foram escritos e conferidos no PC, cada um contra o outro
 (o servidor aceita exatamente o que o firmware envia; o app gera os mesmos bytes que o firmware lê).
@@ -34,7 +34,7 @@ Sem o vínculo a resposta é 403; com segredo errado, 401.
 
 ```bash
 cd firmware/esp32
-idf.py set-target esp32s3
+idf.py set-target esp32     # ESP32 comum; use esp32s3 se a placa for S3
 idf.py menuconfig        # Thermal Health Device
 idf.py build flash monitor -p <porta>
 ```
@@ -44,7 +44,7 @@ No menu **Thermal Health Device**:
 - **ID do aparelho**: o mesmo do passo 1 (também é o nome que o app mostra).
 - **Segredo do aparelho**: o do passo 1.
 - **URL da API**: o endereço do túnel, sem barra no final.
-- Pinos do I2C, se a sua placa não usar SDA = 8 / SCL = 9 (veja o README do firmware).
+- Pinos do I2C, se o sensor não estiver ligado nos padrões (ESP32: SDA 21 / SCL 22; ESP32-S3: 8 / 9). Veja o README do firmware.
 
 O segredo fica no `sdkconfig` local (fora do Git). Antes de ligar o BLE, confira o sensor: o
 autoteste mostra no monitor serial `Quadro: mín … máx … média …`.

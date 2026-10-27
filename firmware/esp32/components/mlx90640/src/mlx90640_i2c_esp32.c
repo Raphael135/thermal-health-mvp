@@ -44,6 +44,25 @@ static bool pin_is_usable(int gpio, const char *name)
     if (gpio == 19 || gpio == 20) {
         ESP_LOGW(TAG, "GPIO %d (%s) é o USB (D-/D+) do ESP32-S3.", gpio, name);
     }
+#elif CONFIG_IDF_TARGET_ESP32
+    // ESP32 "comum" (WROOM/WROVER).
+    if (gpio >= 6 && gpio <= 11) {
+        ESP_LOGE(TAG, "GPIO %d (%s) está ligado à memória flash do ESP32: usá-lo trava a placa.", gpio, name);
+        return false;
+    }
+    if (gpio >= 34 && gpio <= 39) {
+        ESP_LOGE(TAG, "GPIO %d (%s) é só de entrada no ESP32; o I2C precisa de um pino que também saia.", gpio, name);
+        return false;
+    }
+    if (gpio == 16 || gpio == 17) {
+        ESP_LOGW(TAG, "GPIO %d (%s) é usado pela PSRAM nos módulos ESP32-WROVER.", gpio, name);
+    }
+    if (gpio == 0 || gpio == 2 || gpio == 5 || gpio == 12 || gpio == 15) {
+        ESP_LOGW(TAG, "GPIO %d (%s) define o modo de boot: o sensor ligado nele pode impedir a placa de iniciar.", gpio, name);
+    }
+    if (gpio == 1 || gpio == 3) {
+        ESP_LOGW(TAG, "GPIO %d (%s) é a porta serial do console (log e gravação).", gpio, name);
+    }
 #endif
     return true;
 }

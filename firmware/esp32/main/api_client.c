@@ -8,7 +8,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "cJSON.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -48,43 +47,93 @@ static bool clock_is_valid(void) {
 }
 
 // Duas casas decimais, calculadas em double: um float arredondado e convertido para double volta a
-// virar 30.719999313354492, que o cJSON imprime com 15 dígitos (~3x mais bytes no envio).
+// virar 30.719999313354492 (15 dígitos, ~3x mais bytes no envio).
 static double round2(float value) {
     return round((double) value * 100.0) / 100.0;
 }
 
+static bool is_uuid(const char *text) {
+    if (strlen(text) != 36) {
+        return false;
+    }
+    for (int i = 0; i < 36; i++) {
+        bool dash = (i == 8 || i == 13 || i == 18 || i == 23);
+        char c = text[i];
+        bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+        if (dash ? c != '-' : !hex) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Escreve o JSON direto num buffer (~6 KB para 768 valores). Uma árvore cJSON desses mesmos valores
+// ocuparia dezenas de KB de heap, que no ESP32 comum são disputados com o Wi-Fi, o BLE e o TLS.
+// patientId é validado como UUID, então não precisa de escape.
 static char *build_payload(const thermal_frame_t *frame, const char *patient_id, bool with_time) {
-    cJSON *root = cJSON_CreateObject();
-    cJSON *temperatures = cJSON_CreateArray();
-    if (root == NULL || temperatures == NULL) {
-        cJSON_Delete(root);
-        cJSON_Delete(temperatures);
+    int total = frame->width * frame->height;
+    if (total <= 0 || !is_uuid(patient_id)) {
         return NULL;
     }
 
-    cJSON_AddStringToObject(root, "patientId", patient_id);
-    cJSON_AddNumberToObject(root, "width", frame->width);
-    cJSON_AddNumberToObject(root, "height", frame->height);
-    cJSON_AddStringToObject(root, "unit", "celsius");
-
-    int total = frame->width * frame->height;
-    for (int i = 0; i < total; i++) {
-        cJSON_AddItemToArray(temperatures, cJSON_CreateNumber(round2(frame->temperatures[i])));
+    // cabeçalho + rodapé + até 9 caracteres por valor (-40..300 com 2 casas, mais a vírgula)
+    size_t capacity = 256 + (size_t) total * 9;
+    char *buffer = malloc(capacity);
+    if (buffer == NULL) {
+        return NULL;
     }
-    cJSON_AddItemToObject(root, "temperatures", temperatures);
 
-    if (with_time) {
+    int written = snprintf(buffer, capacity,
+                           "{\"patientId\":\"%s\",\"width\":%d,\"height\":%d,\"unit\":\"celsius\",\"temperatures\":[",
+                           patient_id, frame->width, frame->height);
+    size_t length = (written > 0 && (size_t) written < capacity) ? (size_t) written : 0;
+    bool ok = length > 0;
+
+    for (int i = 0; ok && i < total; i++) {
+        float raw = frame->temperatures[i];
+        if (!isfinite(raw)) {
+            ok = false; // "nan" não é JSON válido: melhor não enviar
+            break;
+        }
+        double value = round2(raw);
+        if (value == 0.0) {
+            value = 0.0; // evita "-0.00"
+        }
+        written = snprintf(buffer + length, capacity - length, i == 0 ? "%.2f" : ",%.2f", value);
+        if (written < 0 || (size_t) written >= capacity - length) {
+            ok = false;
+            break;
+        }
+        length += (size_t) written;
+    }
+
+    if (ok) {
+        written = snprintf(buffer + length, capacity - length, "]");
+        ok = written > 0 && (size_t) written < capacity - length;
+        length += ok ? (size_t) written : 0;
+    }
+
+    if (ok && with_time) {
         time_t now = time(NULL);
         struct tm utc;
         char stamp[32];
         gmtime_r(&now, &utc);
         strftime(stamp, sizeof stamp, "%Y-%m-%dT%H:%M:%SZ", &utc);
-        cJSON_AddStringToObject(root, "capturedAt", stamp);
+        written = snprintf(buffer + length, capacity - length, ",\"capturedAt\":\"%s\"", stamp);
+        ok = written > 0 && (size_t) written < capacity - length;
+        length += ok ? (size_t) written : 0;
     }
 
-    char *json_string = cJSON_PrintUnformatted(root);
-    cJSON_Delete(root);
-    return json_string; // chamador deve dar free()
+    if (ok) {
+        written = snprintf(buffer + length, capacity - length, "}");
+        ok = written > 0 && (size_t) written < capacity - length;
+    }
+
+    if (!ok) {
+        free(buffer);
+        return NULL;
+    }
+    return buffer; // chamador deve dar free()
 }
 
 int api_client_send_capture(const thermal_frame_t *frame, const char *patient_id) {

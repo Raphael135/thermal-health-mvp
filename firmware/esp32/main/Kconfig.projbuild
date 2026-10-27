@@ -65,15 +65,21 @@ menu "Thermal Health Device"
         config THERMAL_I2C_SDA_GPIO
             int "GPIO do SDA"
             range 0 48
+            default 21 if IDF_TARGET_ESP32
             default 8
             help
-                No ESP32-S3 não existem os GPIO 22 a 25, e os 26 a 32 são da flash/PSRAM.
-                Confira o esquema da sua placa.
+                O padrão é 21 no ESP32 e 8 no ESP32-S3. Confira o esquema da sua placa.
+                No ESP32 os GPIO 6 a 11 são da flash e 34 a 39 só têm entrada; no ESP32-S3
+                não existem os GPIO 22 a 25 e os 26 a 32 são da flash/PSRAM. O firmware
+                recusa esses pinos e avisa no log.
 
         config THERMAL_I2C_SCL_GPIO
             int "GPIO do SCL"
             range 0 48
+            default 22 if IDF_TARGET_ESP32
             default 9
+            help
+                O padrão é 22 no ESP32 e 9 no ESP32-S3.
 
         config THERMAL_I2C_FREQ_HZ
             int "Frequência do I2C (Hz)"

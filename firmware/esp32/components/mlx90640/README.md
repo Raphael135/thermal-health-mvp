@@ -1,6 +1,6 @@
 # Componente MLX90640
 
-Driver do sensor térmico MLX90640 (32×24 pixels) para o ESP32-S3.
+Driver do sensor térmico MLX90640 (32×24 pixels) para o ESP32 e o ESP32-S3.
 
 - `src/MLX90640_API.c`, `include/MLX90640_API.h`, `include/MLX90640_I2C_Driver.h`:
   biblioteca oficial da Melexis, **copiada sem alterações** de
